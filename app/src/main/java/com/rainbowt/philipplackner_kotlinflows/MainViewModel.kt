@@ -3,8 +3,13 @@ package com.rainbowt.philipplackner_kotlinflows
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.count
@@ -32,12 +37,47 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    private val _stateFlow = MutableStateFlow(0)
+    val stateFlow = _stateFlow.asStateFlow()
+
+    fun incrementCount() {
+        _stateFlow.value += 1
+    }
+
+    private val _sharedFlow = MutableSharedFlow<Int>(replay = 5)
+    val sharedFlow = _sharedFlow.asSharedFlow()
+
+    fun squareNumber(number: Int) {
+        viewModelScope.launch {
+            _sharedFlow.emit(number * number)
+        }
+    }
+
+    fun collectShareFlow() {
+        viewModelScope.launch {
+            sharedFlow.collect {
+                delay(2000)
+                println("CSF first - FLOW: The received number is $it")
+            }
+        }
+
+        viewModelScope.launch {
+            sharedFlow.collect {
+                delay(3000)
+                println("CSF second - FLOW: The received number is $it")
+            }
+        }
+
+        squareNumber(3)
+    }
+
     init {
-        collectFlowWithCount()
-        collectFlowWithReduce()
-        collectFlowWithFold()
-        collectFlowWithFlatMapConcat()
-        collectFlowWithFlat()
+//        collectFlowWithCount()
+//        collectFlowWithReduce()
+//        collectFlowWithFold()
+//        collectFlowWithFlatMapConcat()
+//        collectFlowWithFlat()
+        collectShareFlow()
     }
 
     private fun collectFlowWithCount() {
