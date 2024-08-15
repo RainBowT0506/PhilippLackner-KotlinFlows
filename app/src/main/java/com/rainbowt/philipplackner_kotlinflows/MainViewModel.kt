@@ -17,16 +17,17 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.reduce
 import kotlinx.coroutines.launch
 
-class MainViewModel : ViewModel() {
+class MainViewModel(private val dispatcher: DispatcherProvider) : ViewModel() {
 
     val countDownFlow = flow<Int> {
-        val startingValue = 10
+        val startingValue = 5
         var currentValue = startingValue
         emit(startingValue)
 
@@ -35,7 +36,7 @@ class MainViewModel : ViewModel() {
             currentValue--
             emit(currentValue)
         }
-    }
+    }.flowOn(dispatcher.main)
 
     private val _stateFlow = MutableStateFlow(0)
     val stateFlow = _stateFlow.asStateFlow()
@@ -48,22 +49,22 @@ class MainViewModel : ViewModel() {
     val sharedFlow = _sharedFlow.asSharedFlow()
 
     fun squareNumber(number: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             _sharedFlow.emit(number * number)
         }
     }
 
     fun collectShareFlow() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             sharedFlow.collect {
-                delay(2000)
+                delay(2000L)
                 println("CSF first - FLOW: The received number is $it")
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             sharedFlow.collect {
-                delay(3000)
+                delay(3000L)
                 println("CSF second - FLOW: The received number is $it")
             }
         }
@@ -81,7 +82,7 @@ class MainViewModel : ViewModel() {
     }
 
     private fun collectFlowWithCount() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             val count = countDownFlow
                 .filter { time ->
                     time % 2 == 0
@@ -101,7 +102,7 @@ class MainViewModel : ViewModel() {
     }
 
     private fun collectFlowWithReduce() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             val reduceResult = countDownFlow
                 .reduce { accumulator, value ->
                     accumulator + value
@@ -113,7 +114,7 @@ class MainViewModel : ViewModel() {
     }
 
     private fun collectFlowWithFold() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             val foldResult = countDownFlow
                 .fold(100) { accumulator, value ->
                     accumulator + value
@@ -130,7 +131,7 @@ class MainViewModel : ViewModel() {
             emit(2)
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             flow1.flatMapConcat { value ->
                 flow {
                     emit(value + 1)
@@ -153,7 +154,7 @@ class MainViewModel : ViewModel() {
             emit("Dessert")
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher.main) {
             flow.onEach {
                 println("FLOW: $it is delivered")
             }
